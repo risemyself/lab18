@@ -1,0 +1,48 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches:
+      - main # Или master, если твоя главная ветка так называется
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. Получение исходного кода
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # 2. Настройка среды Node.js
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      # 3. Установка зависимостей
+      - name: Install dependencies
+        run: npm ci
+
+      # 4. ЗАПУСК ТЕСТОВ (Задание 3: до сборки, чтобы остановить пайплайн при ошибках)
+      - name: Run tests
+        run: npm run test
+
+      # 5. Сборка приложения
+      - name: Build application
+        run: npm run build
+
+      # 6. Вход в Docker Hub
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      # 7. Сборка Docker-образа (используем оптимизированный Dockerfile.prod из ЛР 18)
+      - name: Build Docker image
+        run: docker build -t ${{ secrets.DOCKER_USERNAME }}/nest-lab19:latest -f Dockerfile.prod .
+
+      # 8. Отправка образа в Docker Hub
+      - name: Push Docker image
+        run: docker push ${{ secrets.DOCKER_USERNAME }}/nest-lab19:latest
